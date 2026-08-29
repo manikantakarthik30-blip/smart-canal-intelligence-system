@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8081/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "SCIS | Smart Canal Intelligence System | Vijayawada",
+      "hasCanvas": true,
+      "bodyTextLen": 5211,
+      "bodyTextHash": "bbe2fd35057ed2ff567d008b4a290b2012d924ffc1374d7a590db09ca626bcb9",
+      "bodyTextPrefix": "SCIS HOME DASHBOARD DETECTION MAP ALERTS REPORT UAV-01 · ACTIVE ",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "SCIS | Smart Canal Intelligence System | Vijayawada",
+      "hasCanvas": true,
+      "bodyTextLen": 5168,
+      "bodyTextHash": "8882c0dbb869fb48c828f30f144653e869350625efff450ba2608e42cd48a45f",
+      "bodyTextPrefix": "SCIS UAV-01 · ACTIVE ALT: 8.0M SPD: 2.3 M/S BAT: 87% THERMAL: OF",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-built.json"
+}

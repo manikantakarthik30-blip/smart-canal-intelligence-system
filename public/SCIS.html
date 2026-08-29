@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SCIS | Smart Canal Intelligence System | Vijayawada</title>
+  <meta name="description" content="Smart Canal Intelligence System - AI-powered pollution detection for Eluru Canal and Ryves Canal, Vijayawada" />
+  <meta name="keywords" content="canal pollution, AI detection, Vijayawada, YOLOv8, smart city" />
+  <meta property="og:title" content="Smart Canal Intelligence System" />
+  <meta property="og:description" content="AI-Powered Canal Pollution Monitoring Platform" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌊</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root { --g:#00ff88; --c:#00cfff; --bg:#0a0a0a; --card:#111; --muted:#9aaba3; --fg:#f4f7f5; }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 4.6rem; background: var(--bg); color: var(--fg); }
+    body { margin: 0; font-family: Outfit, sans-serif; background: #0a0a0a; overflow-x: hidden; }
+    a { color: inherit; text-decoration: none; }
+    .nav { position: fixed; inset: 0 0 auto; z-index: 60; display: flex; justify-content: space-between; align-items: center; min-height: 56px; padding: 10px 22px; background: #0a0a0acc; backdrop-filter: blur(16px); }
+    .nav.is-solid { background: #0a0a0a; border-bottom: 1px solid rgba(0,255,136,.16); }
+    .brand { color: var(--g); font-family: Cinzel, serif; letter-spacing: .32em; font-weight: 700; }
+    .nav-links { display: flex; gap: 4px; }
+    .nav-links a { color: #c5d4cc; letter-spacing: .16em; text-transform: uppercase; font-size: 12px; padding: 10px 12px; }
+    .nav-links a.is-active, .nav-links a:hover { color: var(--g); }
+    .nav-toggle { display: none; background: none; border: 1px solid rgba(0,255,136,.3); color: var(--g); padding: 8px 12px; }
+    .hero { position: relative; height: 100vh; min-height: 100dvh; overflow: hidden; background: #0a0a0a; }
+    #c { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .hero-ui { position: relative; z-index: 5; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 120px 24px 90px; text-align: center; pointer-events: none; }
+    .kicker { letter-spacing: .48em; text-transform: uppercase; color: var(--g); font-size: 11px; }
+    h1 { font-family: Cinzel, serif; font-size: clamp(1.6rem, 5vw, 4rem); letter-spacing: .08em; margin: 12px 0; text-shadow: 0 0 18px rgba(0,255,136,.55); }
+    .sub { letter-spacing: .14em; color: #d5e4dc; max-width: 40rem; }
+    .scroll { pointer-events: auto; color: var(--g); letter-spacing: .3em; text-transform: uppercase; font-size: 10px; }
+    .hud { position: absolute; inset: 0; z-index: 3; pointer-events: none; font-family: ui-monospace, Menlo, monospace; color: var(--g); }
+    .hud-box { position: absolute; top: 64px; padding: 10px 12px; background: rgba(6,12,10,.55); border: 1px solid rgba(0,255,136,.28); font-size: 11px; letter-spacing: .12em; line-height: 1.55; text-transform: uppercase; }
+    .hud-tl { left: 16px; } .hud-tr { right: 16px; text-align: right; }
+    .cross { position: absolute; left: 50%; top: 50%; width: 72px; height: 72px; margin: -36px 0 0 -36px; }
+    .cross:before, .cross:after { content: ""; position: absolute; background: rgba(0,255,136,.7); }
+    .cross:before { left: 50%; top: 8px; bottom: 8px; width: 1px; margin-left: -.5px; }
+    .cross:after { top: 50%; left: 8px; right: 8px; height: 1px; margin-top: -.5px; }
+    .ring { position: absolute; inset: 18px; border: 1px solid rgba(0,255,136,.55); border-radius: 50%; }
+    .compass { position: absolute; left: 50%; bottom: 88px; width: 88px; height: 88px; margin-left: -44px; border: 1px solid rgba(0,255,136,.35); border-radius: 50%; }
+    .compass span { position: absolute; font-size: 9px; color: #9aaba3; }
+    .compass .n { top: 6px; left: 50%; margin-left: -4px; color: var(--g); }
+    .compass .s { bottom: 6px; left: 50%; margin-left: -4px; }
+    .compass .e { right: 8px; top: 50%; margin-top: -6px; }
+    .compass .w { left: 8px; top: 50%; margin-top: -6px; }
+    .needle { position: absolute; left: 50%; top: 12px; width: 0; height: 0; margin-left: -5px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 16px solid var(--g); transform-origin: 50% 32px; }
+    section.block { min-height: 100vh; padding: clamp(48px, 8vh, 88px) clamp(18px, 4vw, 48px); }
+    .inner { max-width: 1180px; margin: 0 auto; }
+    .head { text-align: center; margin-bottom: 28px; }
+    .head p { color: var(--c); letter-spacing: .36em; text-transform: uppercase; font-size: 11px; }
+    .head h2 { font-family: Cinzel, serif; color: var(--g); letter-spacing: .06em; font-size: clamp(1.4rem, 3vw, 2.3rem); text-shadow: 0 0 22px rgba(0,255,136,.28); }
+    .head .red { color: #ff4444; text-shadow: 0 0 22px rgba(255,68,68,.35); }
+    .muted { color: var(--muted); }
+    .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .card { background: #111; border: 1px solid rgba(0,255,136,.32); border-radius: 16px; padding: 20px; }
+    .metric { font-size: clamp(2rem, 3vw, 3rem); font-weight: 600; }
+    .g { color: var(--g); } .r { color: #ff3d4a; } .cy { color: var(--c); } .or { color: #ff8a3d; }
+    .chart { background: #111; border: 1px solid rgba(0,255,136,.28); border-radius: 24px; padding: 22px; margin-top: 18px; height: 380px; }
+    .cctv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .cctv { border: 1px solid #00ff4433; border-radius: 8px; overflow: hidden; background: #0d1f15; }
+    .cctv-top, .cctv-bot { display: flex; justify-content: space-between; padding: 8px 10px; font-size: 11px; letter-spacing: .12em; background: #0a0a0a; }
+    .stage { position: relative; height: 220px; overflow: hidden; }
+    .stage img { width: 100%; height: 100%; object-fit: cover; }
+    .yolo { position: absolute; border: 2px solid #ff3d4a; color: #ff3d4a; font-size: 10px; padding-top: 2px; }
+    .map-layout { display: grid; grid-template-columns: 1.5fr .9fr; gap: 18px; }
+    .map-shell { height: 500px; border-radius: 16px; overflow: hidden; border: 1px solid rgba(0,255,136,.28); }
+    .map-shell iframe { width: 100%; height: 100%; border: 0; filter: brightness(.85) saturate(.7); }
+    .hot { background: #111; border-left: 4px solid; padding: 16px; border-radius: 12px; margin-bottom: 12px; }
+    .inc { background: #111; border-left: 4px solid; border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; display: flex; justify-content: space-between; gap: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: var(--g); color: #0a0a0a; text-align: left; padding: 10px 12px; font-size: 10px; letter-spacing: .14em; }
+    td { padding: 10px 12px; border-top: 1px solid rgba(255,255,255,.05); color: #c5d4cc; }
+    .report-layout { display: grid; grid-template-columns: 1.05fr .95fr; gap: 22px; }
+    .report form, .preview { background: #111; border: 1px solid rgba(0,255,136,.22); border-radius: 16px; padding: 22px; }
+    label.field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+    input, select { background: #0a0a0a; color: #f4f7f5; border: 1px solid rgba(0,255,136,.28); border-radius: 10px; padding: 12px 14px; font: inherit; color-scheme: dark; }
+    .go { width: 100%; background: var(--g); color: #0a0a0a; border: 0; border-radius: 999px; padding: 14px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+    .bar { height: 8px; background: #1a1a1a; border-radius: 99px; overflow: hidden; margin-top: 8px; }
+    .fill { height: 100%; width: 0; background: var(--g); }
+    .ok { display: none; margin-top: 12px; color: var(--g); }
+    .preview-banner { border-bottom: 1px solid rgba(0,255,136,.18); padding-bottom: 12px; }
+    footer { text-align: center; padding: 40px 20px 80px; color: var(--muted); background: #080808; }
+    .fab { position: fixed; right: 18px; bottom: 18px; z-index: 70; background: #ff3d4a; color: #fff; border: 0; border-radius: 999px; padding: 12px 16px; font-weight: 700; cursor: pointer; }
+    .pop { display: none; position: fixed; right: 18px; bottom: 70px; z-index: 70; width: 280px; background: #111; border: 1px solid #ff3d4a; border-radius: 12px; padding: 14px; }
+    @media (max-width: 768px) {
+      .grid4, .cctv-grid, .map-layout, .report-layout { grid-template-columns: 1fr; }
+      .nav-toggle { display: block; }
+      .nav-links { display: none; position: absolute; top: 100%; left: 0; right: 0; background: #0a0a0a; flex-direction: column; }
+      .nav.is-open .nav-links { display: flex; }
+      .inc { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header class="nav" id="nav">
+    <a class="brand" href="#home">🌊 SCIS</a>
+    <button class="nav-toggle" type="button" id="navBtn">Menu</button>
+    <nav class="nav-links" id="links">
+      <a href="#home">Home</a>
+      <a href="#live-dashboard">Dashboard</a>
+      <a href="#ai-detection-feed">Detection</a>
+      <a href="#pollution-hotspot-map">Map</a>
+      <a href="#alerts">Alerts</a>
+      <a href="#generate-report">Report</a>
+    </nav>
+  </header>
+
+  <section class="hero" id="home">
+    <canvas id="c"></canvas>
+    <div class="hud">
+      <div class="hud-box hud-tl">
+        <div>UAV-01 · ACTIVE</div>
+        <div id="alt">ALT: 8.0m</div>
+        <div id="spd">SPD: 2.3 m/s</div>
+        <div id="bat">BAT: 87%</div>
+      </div>
+      <div class="hud-box hud-tr">
+        <div>THERMAL: OFF</div>
+        <div>ZOOM: 2.4x</div>
+        <div id="obj">OBJECTS: 47</div>
+        <div id="rec" style="color:#ff3d4a">● REC</div>
+      </div>
+      <div class="cross"><div class="ring"></div></div>
+      <div class="compass">
+        <span class="n">N</span><span class="e">E</span><span class="s">S</span><span class="w">W</span>
+        <div class="needle" id="needle"></div>
+      </div>
+    </div>
+    <div class="hero-ui">
+      <div>
+        <div class="kicker">Vijayawada · Andhra Pradesh</div>
+        <div class="muted" style="letter-spacing:.2em;font-size:11px;margin-top:6px">16.5062°N · 80.6480°E · Eluru Canal · Ryves Canal</div>
+      </div>
+      <div>
+        <p class="kicker">Night Operations · Canal Watch</p>
+        <h1>Smart Canal Intelligence System</h1>
+        <p class="sub">AI-Powered Pollution Detection | Vijayawada, Andhra Pradesh</p>
+      </div>
+      <a class="scroll" href="#live-dashboard">Descend ▾</a>
+    </div>
+  </section>
+
+  <section class="block" id="live-dashboard" style="background:#0a0a0a">
+    <div class="inner">
+      <div class="head">
+        <p>Command · Vijayawada Urban Canals</p>
+        <h2><span class="g">● LIVE</span> Live Monitoring Dashboard</h2>
+      </div>
+      <div class="grid4">
+        <div class="card"><p class="muted">Waste Objects Detected Today</p><p class="metric g" data-count="247">0</p></div>
+        <div class="card"><p class="muted">Canal Health Score</p><p class="metric r"><span data-count="32">0</span>%</p><p class="r">CRITICAL</p></div>
+        <div class="card"><p class="muted">Active Drone Units</p><p class="metric cy" data-count="3">0</p></div>
+        <div class="card"><p class="muted">Alerts Sent Today</p><p class="metric or" data-count="18">0</p></div>
+      </div>
+      <div class="chart"><canvas id="pollChart"></canvas></div>
+    </div>
+  </section>
+
+  <section class="block" id="ai-detection-feed" style="background:#080808">
+    <div class="inner">
+      <div class="head"><p>YOLOv8 · Fixed CCTV</p><h2 style="color:var(--c)">AI Detection Feed</h2></div>
+      <div class="cctv-grid" id="cams"></div>
+      <div class="card" style="margin-top:22px;overflow:auto">
+        <h3 class="cy">Detection log</h3>
+        <table><thead><tr><th>Time</th><th>Camera</th><th>Object Type</th><th>Confidence</th><th>Location</th></tr></thead><tbody id="logBody"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="pollution-hotspot-map">
+    <div class="inner">
+      <div class="head"><p>Geospatial · 16.5062°N 80.6480°E</p><h2>Pollution Hotspot Map</h2></div>
+      <div class="map-layout">
+        <div class="map-shell">
+          <iframe title="Vijayawada map" src="https://maps.google.com/maps?q=16.5062,80.6480&ll=16.5062,80.6480&z=13&t=k&hl=en&output=embed&maptype=satellite" loading="lazy"></iframe>
+        </div>
+        <div>
+          <div class="hot" style="border-color:#ff2222"><b>Eluru Canal</b> <span class="r">CRITICAL</span><div class="muted">Last detected: 5 mins ago</div></div>
+          <div class="hot" style="border-color:#ff8800"><b>Ryves Canal</b> <span class="or">HIGH</span><div class="muted">Last detected: 12 mins ago</div></div>
+          <div class="hot" style="border-color:#ffcc00"><b>Bandar Road Drain</b> <span style="color:#ffcc00">MODERATE</span><div class="muted">Last detected: 28 mins ago</div></div>
+          <p class="muted">Legend: red Critical · orange High · yellow Moderate</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="alerts">
+    <div class="inner">
+      <div class="head"><p>Incident Command · Vijayawada Canals</p><h2 class="red">Alerts & Notifications</h2><p class="muted">Real-time incidents from UAV fleet and fixed CCTV nodes on Eluru and Ryves Canal</p></div>
+      <div class="inc" style="border-color:#ff2222"><div><b class="r">● CRITICAL</b><h3>Mass Garbage Accumulation — Eluru Canal</h3><p class="muted">Governorpet Reach · 162 waste objects · UAV-01 holding · Today · 06:42 IST</p></div><div><span class="g">CLEANUP DEPLOYED</span><br><a class="r" href="#ai-detection-feed">View Feed →</a></div></div>
+      <div class="inc" style="border-color:#ff8800"><div><b class="or">● HIGH</b><h3>Surface Film + Plastic Debris — Ryves Canal</h3><p class="muted">One Town corridor · CAM-02 · Today · 08:15 IST</p></div><span class="or">ALERT SENT TO VMC</span></div>
+      <div class="inc" style="border-color:#ff8800"><div><b class="or">● HIGH</b><h3>Garbage Bags Blocking Flow — Eluru Canal</h3><p class="muted">Bhavanipuram Bund · UAV-03 · Today · 09:30 IST</p></div><span style="color:#ffcc00">UNDER REVIEW</span></div>
+      <div class="inc" style="border-color:#ffcc00"><div><b style="color:#ffcc00">⚡ MODERATE</b><h3>Elevated Turbidity — Bandar Road Drain</h3><p class="muted">Outfall into Krishna River · CAM-03 · Today · 11:00 IST</p></div><span style="color:#ffcc00">MONITORING</span></div>
+      <div class="inc" style="border-color:#00ff88"><div><b class="g">✓ RESOLVED</b><h3>Cleanup Complete — Ryves Canal Krishna Ghat</h3><p class="muted">UAV-02 confirmed · Yesterday · 16:20 IST</p></div><span class="g">CLOSED</span></div>
+      <div class="grid4" style="margin:18px 0">
+        <div class="card" style="text-align:center"><div class="metric">18</div><div class="muted">Total Alerts Today</div></div>
+        <div class="card" style="text-align:center"><div class="metric r">4</div><div class="muted">Critical</div></div>
+        <div class="card" style="text-align:center"><div class="metric g">12</div><div class="muted">Resolved</div></div>
+        <div class="card" style="text-align:center"><div class="metric or">2</div><div class="muted">Pending Action</div></div>
+      </div>
+      <div class="card" style="overflow:auto">
+        <h3 class="cy">Notification Dispatch Log</h3>
+        <table>
+          <thead><tr><th>Time</th><th>Location</th><th>Severity</th><th>Sent To</th><th>Method</th><th>Status</th></tr></thead>
+          <tbody id="dispatch">
+            <tr><td>06:42</td><td>Eluru Canal Governorpet</td><td class="r">CRITICAL</td><td>VMC Commissioner</td><td>SMS + Email</td><td class="g">Delivered</td></tr>
+            <tr><td>06:45</td><td>Eluru Canal Governorpet</td><td class="r">CRITICAL</td><td>APPCB Vijayawada</td><td>Email</td><td class="g">Delivered</td></tr>
+            <tr><td>08:15</td><td>Ryves Canal One Town</td><td class="or">HIGH</td><td>GWMC Operations</td><td>SMS</td><td class="g">Delivered</td></tr>
+            <tr><td>08:17</td><td>Ryves Canal One Town</td><td class="or">HIGH</td><td>Ward Councillor 42</td><td>WhatsApp</td><td class="g">Delivered</td></tr>
+            <tr><td>09:30</td><td>Eluru Canal Bhavanipuram</td><td class="or">HIGH</td><td>VMC Engineering</td><td>SMS + Email</td><td class="g">Delivered</td></tr>
+            <tr><td>09:32</td><td>Eluru Canal Bhavanipuram</td><td class="or">HIGH</td><td>UAV Control Room</td><td>App Push</td><td class="g">Delivered</td></tr>
+            <tr><td>11:00</td><td>Bandar Road Drain</td><td style="color:#ffcc00">MODERATE</td><td>GWMC Monitoring</td><td>Email</td><td class="g">Delivered</td></tr>
+            <tr><td>11:05</td><td>Bandar Road Drain</td><td style="color:#ffcc00">MODERATE</td><td>Environmental Officer</td><td>SMS</td><td class="or">Pending</td></tr>
+            <tr><td>14:30</td><td>Ryves Canal One Town</td><td class="or">HIGH</td><td>VMC Commissioner</td><td>SMS + Email</td><td class="g">Delivered</td></tr>
+            <tr><td>16:20</td><td>Ryves Canal Krishna Ghat</td><td class="g">RESOLVED</td><td>All Departments</td><td>Email</td><td class="g">Delivered</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="block report" id="generate-report" style="background:#080808">
+    <div class="inner">
+      <div class="head"><p>Export · SCIS AI Engine v2.1</p><h2>Canal Intelligence Report Generator</h2><p class="muted">Generate and download a full PDF summary of today's canal monitoring data</p></div>
+      <div class="report-layout">
+        <form id="reportForm">
+          <label class="field">Date Range <input type="date" id="rDate" required></label>
+          <label class="field">Canal
+            <select id="rCanal">
+              <option>All Canals</option><option>Eluru Canal</option><option>Ryves Canal</option><option>Bandar Road Drain</option>
+            </select>
+          </label>
+          <label class="field">Report Type
+            <select id="rType">
+              <option>Full Report</option><option>Pollution Summary</option><option>Alert Log</option><option>Drone Activity Report</option>
+            </select>
+          </label>
+          <button class="go" id="rGo" type="submit">Generate Report</button>
+          <div id="rProg" style="display:none" class="muted">Compiling UAV logs…<div class="bar"><div class="fill" id="rFill"></div></div></div>
+          <div class="ok" id="rOk">✅ Report downloaded successfully!</div>
+        </form>
+        <article class="preview">
+          <div class="preview-banner">
+            <p class="g">SMART CANAL INTELLIGENCE SYSTEM</p>
+            <h3>Weekly Pollution Report — Vijayawada</h3>
+            <p class="muted" id="prevDate"></p>
+          </div>
+          <p>• Total waste objects detected: 247</p>
+          <p>• Critical incidents: 4</p>
+          <p>• Canals monitored: 3</p>
+          <p>• Drone flight hours: 6.2 hrs</p>
+          <p>• Alerts dispatched: 18</p>
+          <p>• Cleanup actions initiated: 3</p>
+          <p>• Canal health score: 32% (Critical)</p>
+          <p class="g" style="font-family:monospace;font-size:11px">GENERATED BY SCIS AI ENGINE v2.1</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Smart Canal Intelligence System | Vijayawada, Andhra Pradesh</p>
+    <p>Powered by YOLOv8 + OpenCV + Google Maps | Built for cleaner urban waterways</p>
+  </footer>
+  <button class="fab" id="fab" type="button">⚠ Active Alert</button>
+  <div class="pop" id="pop">High pollution detected at Eluru Canal — 5 mins ago<br><span class="muted">CAM-01 · Governorpet · CRITICAL · UAV-01</span></div>
+
+<script>
+(function () {
+  const nav = document.getElementById("nav");
+  document.getElementById("navBtn").onclick = () => nav.classList.toggle("is-open");
+  window.addEventListener("scroll", () => nav.classList.toggle("is-solid", scrollY > 28), { passive: true });
+  document.getElementById("fab").onclick = () => {
+    const p = document.getElementById("pop");
+    p.style.display = p.style.display === "block" ? "none" : "block";
+  };
+
+  const today = new Date();
+  document.getElementById("rDate").value = today.toISOString().slice(0, 10);
+  document.getElementById("prevDate").textContent = today.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+
+  const io = new IntersectionObserver((ents) => {
+    ents.forEach((e) => { if (e.isIntersecting) e.target.querySelectorAll("[data-count]").forEach(animateCount); });
+  }, { threshold: 0.3 });
+  io.observe(document.getElementById("live-dashboard"));
+  function animateCount(el) {
+    if (el.dataset.done) return;
+    el.dataset.done = "1";
+    const t = +el.dataset.count;
+    const t0 = performance.now();
+    const tick = (n) => {
+      const k = Math.min(1, (n - t0) / 1400);
+      el.textContent = Math.round(t * (1 - (1 - k) ** 3));
+      if (k < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
+  const ctx = document.getElementById("pollChart");
+  new Chart(ctx, {
+    type: "line",
+    data: { labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"], datasets: [{ label: "Pollution Level - Last 7 Days", data: [45,62,38,71,55,83,67], borderColor: "#00ff88", backgroundColor: "rgba(0,255,136,.12)", fill: true, tension: .35 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#c5d4cc" } } }, scales: { x: { ticks: { color: "#9aaba3" }, grid: { color: "rgba(255,255,255,.06)" } }, y: { ticks: { color: "#9aaba3" }, grid: { color: "rgba(255,255,255,.06)" } } } }
+  });
+
+  const urls = [
+    "https://raw.githubusercontent.com/ORCAUBOAT/FloW-Dataset/main/Pictures/scene1.gif",
+    "https://raw.githubusercontent.com/ORCAUBOAT/FloW-Dataset/main/Pictures/scene2.gif",
+    "https://raw.githubusercontent.com/ORCAUBOAT/FloW-Dataset/main/Pictures/scene3.gif"
+  ];
+  const cams = [
+    { id: "CAM-01", name: "Eluru Canal, Governorpet", off: 0 },
+    { id: "CAM-02", name: "Ryves Canal, One Town", off: 1 },
+    { id: "CAM-03", name: "Eluru Canal, Bhavanipuram", off: 2 }
+  ];
+  const labels = ["Plastic Waste", "Debris", "Garbage Bag"];
+  const camsEl = document.getElementById("cams");
+  const logBody = document.getElementById("logBody");
+  cams.forEach((cam, i) => {
+    const card = document.createElement("article");
+    card.className = "cctv";
+    card.innerHTML = `<div class="cctv-top"><span style="color:#ff3d4a">● LIVE</span><span>${cam.id}</span><time></time></div>
+      <div class="stage"><img crossorigin="anonymous" alt="${cam.name}"><div class="yolo"></div></div>
+      <div class="cctv-bot"><span>${cam.name}</span><span class="cnt">Objects: 0</span></div>`;
+    camsEl.appendChild(card);
+    const img = card.querySelector("img");
+    const box = card.querySelector(".yolo");
+    const time = card.querySelector("time");
+    const cnt = card.querySelector(".cnt");
+    let idx = cam.off, n = 12 + i * 3;
+    const cycle = () => { img.src = urls[idx % urls.length]; idx++; };
+    cycle();
+    setInterval(cycle, 2200 + i * 400);
+    setInterval(() => {
+      time.textContent = new Date().toLocaleTimeString("en-GB", { hourCycle: "h23", timeZone: "Asia/Kolkata" });
+    }, 1000);
+    setInterval(() => {
+      box.style.display = "block";
+      box.style.left = 10 + Math.random() * 50 + "%";
+      box.style.top = 20 + Math.random() * 40 + "%";
+      box.style.width = 18 + Math.random() * 20 + "%";
+      box.style.height = 16 + Math.random() * 18 + "%";
+      const lab = labels[(idx + i) % 3];
+      const conf = (85 + Math.random() * 13).toFixed(1);
+      box.textContent = lab + " " + conf + "%";
+      n++; cnt.textContent = "Objects: " + n;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${time.textContent || "--"}</td><td>${cam.id}</td><td>${lab}</td><td>${conf}%</td><td>${cam.name}</td>`;
+      logBody.prepend(tr);
+      while (logBody.rows.length > 8) logBody.deleteRow(-1);
+      setTimeout(() => { box.style.display = "none"; }, 1600);
+    }, 2800 + i * 500);
+  });
+
+  setInterval(() => {
+    const locs = ["Eluru Canal Governorpet","Ryves Canal One Town","Bandar Road Drain"];
+    const sev = ["HIGH","MODERATE","CRITICAL"];
+    const tr = document.createElement("tr");
+    const t = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Asia/Kolkata" });
+    tr.innerHTML = `<td>${t}</td><td>${locs[Math.floor(Math.random()*3)]}</td><td class="or">${sev[Math.floor(Math.random()*3)]}</td><td>VMC Operations</td><td>SMS</td><td class="g">Delivered</td>`;
+    document.getElementById("dispatch").prepend(tr);
+  }, 30000);
+
+  document.getElementById("reportForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const go = document.getElementById("rGo");
+    const prog = document.getElementById("rProg");
+    const fill = document.getElementById("rFill");
+    const ok = document.getElementById("rOk");
+    go.disabled = true; prog.style.display = "block"; ok.style.display = "none";
+    const t0 = performance.now();
+    const tick = (n) => {
+      const t = Math.min(1, (n - t0) / 3000);
+      fill.style.width = (t * 100) + "%";
+      if (t < 1) return requestAnimationFrame(tick);
+      makePdf();
+      ok.style.display = "block";
+      go.disabled = false;
+    };
+    requestAnimationFrame(tick);
+  });
+
+  function makePdf() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const date = new Date(document.getElementById("rDate").value || Date.now());
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const pretty = date.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+    const file = "SCIS_Canal_Report_" + String(date.getDate()).padStart(2,"0") + months[date.getMonth()] + date.getFullYear() + ".pdf";
+    doc.setFillColor(10,10,10); doc.rect(0,0,210,18,"F");
+    doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(0,255,136);
+    doc.text("SMART CANAL INTELLIGENCE SYSTEM", 105, 12, { align: "center" });
+    doc.setFontSize(16); doc.setTextColor(20,24,22);
+    doc.text("Canal Pollution Monitoring Report", 105, 30, { align: "center" });
+    doc.setFont("helvetica","normal"); doc.setFontSize(11); doc.setTextColor(90,100,96);
+    doc.text("Date: " + pretty, 105, 38, { align: "center" });
+    doc.text("Location: Vijayawada, Andhra Pradesh, India", 105, 44, { align: "center" });
+    doc.text("Scope: " + document.getElementById("rCanal").value + "  ·  " + document.getElementById("rType").value, 105, 50, { align: "center" });
+    doc.setDrawColor(0,140,80); doc.line(18,56,192,56);
+    let y = 66;
+    doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(0,140,80); doc.text("SUMMARY", 18, y); y += 8;
+    doc.setFont("helvetica","normal"); doc.setFontSize(11); doc.setTextColor(20,24,22);
+    ["Total Waste Objects Detected: 247","Critical Incidents: 4","Canals Monitored: 3","Active Drone Units: 3 (UAV-01, UAV-02, UAV-03)","Drone Flight Hours: 6.2 hrs","Alerts Dispatched: 18","Cleanup Actions Initiated: 3","Canal Health Score: 32% — CRITICAL"].forEach((l) => { doc.text("•  " + l, 20, y); y += 7; });
+    y += 4; doc.setFont("helvetica","bold"); doc.setTextColor(0,140,80); doc.text("CANAL STATUS", 18, y); y += 9;
+    const canals = [
+      ["1. Eluru Canal — CRITICAL", ["Location: Governorpet to Krishnalanka","Objects Detected: 162","Last Sweep: 06:42 IST"], [180,40,40]],
+      ["2. Ryves Canal — HIGH", ["Location: One Town Corridor","Objects Detected: 85","Last Sweep: 08:15 IST"], [200,110,20]],
+      ["3. Bandar Road Drain — MODERATE", ["Location: Outfall into Krishna River","Objects Detected: 23","Last Sweep: 11:00 IST"], [160,140,20]]
+    ];
+    canals.forEach(([t, lines, col]) => {
+      doc.setFont("helvetica","bold"); doc.setTextColor(col[0], col[1], col[2]); doc.text(t, 20, y); y += 6;
+      doc.setFont("helvetica","normal"); doc.setTextColor(20,24,22);
+      lines.forEach((l) => { doc.text(l, 24, y); y += 6; }); y += 3;
+    });
+    y += 2; doc.setFont("helvetica","bold"); doc.setTextColor(0,140,80); doc.text("ALERTS LOG (last 5)", 18, y); y += 8;
+    doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(20,24,22);
+    ["06:42 | Eluru Canal | CRITICAL | VMC Notified","08:15 | Ryves Canal | HIGH | APPCB Notified","09:30 | Eluru Bhavanipuram | HIGH | Under Review","11:00 | Bandar Road | MODERATE | Monitoring","16:20 | Ryves Krishna Ghat | RESOLVED | Closed"].forEach((l) => { doc.text(l, 20, y); y += 6.5; });
+    doc.setDrawColor(0,140,80); doc.line(18,276,192,276);
+    doc.setFontSize(9); doc.setTextColor(0,140,80); doc.text("Generated by SCIS AI Engine v2.1", 105, 282, { align: "center" });
+    doc.setTextColor(90,100,96); doc.text("Powered by YOLOv8 + OpenCV", 105, 287, { align: "center" });
+    doc.text("Smart Canal Intelligence System — Vijayawada", 105, 292, { align: "center" });
+    doc.save(file);
+  }
+
+  /* Three.js canal + UAV */
+  const canvas = document.getElementById("c");
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.8));
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x0a0f1a, 0.038);
+  scene.background = new THREE.Color(0x0a0f1a);
+  const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 180);
+  camera.position.set(-1.2, 3.55, 14.6);
+  const controls = new THREE.OrbitControls(camera, canvas);
+  controls.enablePan = false; controls.enableZoom = false; controls.enableDamping = true;
+  scene.add(new THREE.HemisphereLight(0x1a2a3a, 0x0a1510, 0.6));
+  const moon = new THREE.DirectionalLight(0x8ea8bc, 0.7); moon.position.set(-14, 22, 10); scene.add(moon);
+  const waterGeo = new THREE.PlaneGeometry(92, 28, 80, 36);
+  const waterMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 }, uCam: { value: camera.position }, uScan: { value: new THREE.Vector3() }, uCol: { value: new THREE.Color(0xc8f0ff) } },
+    vertexShader: "uniform float uTime; varying vec3 w; void main(){ vec3 p=position; p.z = sin((p.x-uTime*0.38)*0.32+p.y*0.18+uTime)*0.2; w=(modelMatrix*vec4(p,1.)).xyz; gl_Position=projectionMatrix*viewMatrix*vec4(w,1.); }",
+    fragmentShader: "varying vec3 w; uniform vec3 uCam; uniform vec3 uScan; uniform vec3 uCol; void main(){ float d=length(w.xz-uScan.xz); vec3 c=mix(vec3(0.1,0.23,0.16), vec3(0.16,0.35,0.25), 0.5); c+=uCol*smoothstep(2.2,0.1,d)*0.8; gl_FragColor=vec4(c,1.); }"
+  });
+  const water = new THREE.Mesh(waterGeo, waterMat); water.rotation.x = -Math.PI/2; scene.add(water);
+  const debris = [];
+  for (let i = 0; i < 15; i++) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(.4,.05,.25), new THREE.MeshStandardMaterial({ color: 0x5a5248 }));
+    const x = -6 + (i % 5) * 3, z = -3 + (i % 4) * 2;
+    m.position.set(x, 0.08, z); scene.add(m); debris.push({ m, x, z, s: 0.25 });
+  }
+  const drone = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,.08,8), new THREE.MeshStandardMaterial({ color: 0x1a1a1a }));
+  drone.add(body);
+  const rotors = [];
+  [Math.PI/4, -Math.PI/4, 3*Math.PI/4, -3*Math.PI/4].forEach((a, i) => {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(.6,.03,.06), new THREE.MeshStandardMaterial({ color: 0x222 }));
+    arm.rotation.y = a; arm.position.set(Math.cos(a)*.3, .02, Math.sin(a)*.3); drone.add(arm);
+    const r = new THREE.Mesh(new THREE.BoxGeometry(.45,.008,.06), new THREE.MeshStandardMaterial({ color: 0x333, transparent: true, opacity: .85 }));
+    r.position.set(Math.cos(a)*.6, .1, Math.sin(a)*.6); drone.add(r); rotors.push({ r, dir: i%2 ? 1 : -1 });
+  });
+  const spot = new THREE.SpotLight(0xc8f0ff, 3.5, 12, 0.35, 0.4); spot.position.set(0, -.3, 0); drone.add(spot); drone.add(spot.target); spot.target.position.set(0, -8, 0);
+  scene.add(drone);
+  let t = 0, last = performance.now(), pass = 0, x = -8, z = -3, y = 8, mode = "entry", entry = 0, objects = 47;
+  const passes = [{ x0:-8,x1:8,z:-3 },{ x0:8,x1:-8,z:-1 },{ x0:-8,x1:8,z:1 },{ x0:8,x1:-8,z:3 }];
+  function resize() {
+    const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  window.addEventListener("resize", resize); resize();
+  function loop(now) {
+    const dt = Math.min(.1, (now - last) / 1000); last = now; t += dt;
+    waterMat.uniforms.uTime.value = t;
+    if (mode === "entry") {
+      entry += dt; const k = Math.min(1, entry / 3); x = -10 + 2 * k; y = 8 - 4.5 * k; if (k >= 1) mode = "cruise";
+    } else {
+      const p = passes[pass]; const dir = Math.sign(p.x1 - p.x0); x += dir * 1.8 * dt; z = p.z; y = 3.5 + Math.sin(t * 2.5) * .08;
+      if ((dir > 0 && x >= p.x1) || (dir < 0 && x <= p.x1)) { pass = (pass + 1) % 4; x = passes[pass].x0; }
+    }
+    drone.position.set(x, y, z);
+    drone.rotation.y += ((x > 0 ? 0 : Math.PI) - drone.rotation.y) * .08;
+    rotors.forEach((o) => o.r.rotation.y += o.dir * 24 * dt);
+    waterMat.uniforms.uScan.value.set(x, 0, z);
+    controls.target.lerp(new THREE.Vector3(x, .3, z), .02); controls.update();
+    document.getElementById("alt").textContent = "ALT: " + y.toFixed(1) + "m";
+    document.getElementById("spd").textContent = "SPD: " + (mode === "entry" ? "3.4" : "2.3") + " m/s";
+    document.getElementById("bat").textContent = "BAT: " + Math.max(62, Math.round(87 - t * .012)) + "%";
+    document.getElementById("obj").textContent = "OBJECTS: " + objects;
+    document.getElementById("rec").style.opacity = Math.floor(t * 2) % 2 ? ".25" : "1";
+    document.getElementById("needle").style.transform = "rotate(" + (drone.rotation.y * 57.3) + "deg)";
+    debris.forEach((d) => { d.x += d.s * dt; if (d.x > 40) d.x = -40; d.m.position.x = d.x; });
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
