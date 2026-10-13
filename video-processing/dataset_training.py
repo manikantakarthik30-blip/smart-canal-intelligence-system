@@ -136,11 +136,7 @@ async def upload_dataset(file: UploadFile = File(...)) -> dict[str, Any]:
 def _train_sync(dataset_yaml: Path, output_dir: Path, epochs: int, imgsz: int) -> dict[str, Any]:
     base_model = Path(settings.model_path)
     configured_base = __import__("os").getenv("SCIS_TRAIN_BASE_MODEL", "").strip()
-    model_source = configured_base or str(base_model)
-    if not configured_base and not base_model.is_file():
-        raise FileNotFoundError(
-            "Training base weights are missing. Set SCIS_TRAIN_BASE_MODEL to a pretrained YOLO model path."
-        )
+    model_source = configured_base or (str(base_model) if base_model.is_file() else "yolo11n.pt")
     trainer = YOLO(model_source)
     result = trainer.train(data=str(dataset_yaml), epochs=epochs, imgsz=imgsz, project=str(output_dir), name="scis")
     best = Path(result.save_dir) / "weights" / "best.pt"
