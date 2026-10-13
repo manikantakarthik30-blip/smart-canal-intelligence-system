@@ -1,0 +1,8 @@
+__pycache__/
+.venv/
+uploads/*
+outputs/*
+models/*
+!uploads/.gitkeep
+!outputs/.gitkeep
+!models/.gitkeep
