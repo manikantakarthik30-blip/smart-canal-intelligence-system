@@ -20,7 +20,7 @@ CONFIDENCE = float(os.getenv("SCIS_CONFIDENCE", "0.25"))
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-app = FastAPI(title="SCIS Video Processing API", version="0.1.0")
+app = FastAPI(title="SCIS Video Processing API", version="0.1.1")
 allowed_origins = [
     origin.strip()
     for origin in os.getenv(
@@ -38,24 +38,31 @@ app.add_middleware(
 )
 
 model = None
+model_load_error = None
 
 
 @app.on_event("startup")
 def load_model():
-    global model
+    """Keep the API available for health checks when model weights are not installed."""
+    global model, model_load_error
+    model = None
+    model_load_error = None
     if not MODEL_PATH.is_file():
-        raise RuntimeError(
-            f"Model weights are missing at {MODEL_PATH}. "
-            "Provide a compatible floating-waste-trained YOLO model and set SCIS_MODEL_PATH if needed."
-        )
-    model = YOLO(str(MODEL_PATH))
+        model_load_error = f"Model weights are missing at {MODEL_PATH}."
+        return
+    try:
+        model = YOLO(str(MODEL_PATH))
+    except Exception as exc:
+        model_load_error = f"Could not load model weights: {exc}"
 
 
 @app.get("/health")
 def health():
     return {
-        "status": "ok" if model is not None else "model-not-loaded",
+        "status": "ok",
+        "model_ready": model is not None,
         "model_configured": MODEL_PATH.is_file(),
+        "model_error": model_load_error,
         "frame_stride": FRAME_STRIDE,
     }
 
@@ -63,9 +70,15 @@ def health():
 @app.post("/analyze")
 async def analyze_video(file: UploadFile = File(...)):
     if model is None:
-        raise HTTPException(status_code=503, detail="Detection model is not loaded.")
+        detail = "Detection model is not loaded."
+        if model_load_error:
+            detail = f"{detail} {model_load_error}"
+        await file.close()
+        raise HTTPException(status_code=503, detail=detail)
+
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in ALLOWED_EXTENSIONS:
+        await file.close()
         raise HTTPException(status_code=400, detail="Unsupported format. Use MP4, MOV, AVI or MKV.")
 
     job_id = uuid.uuid4().hex
@@ -106,6 +119,7 @@ async def analyze_video(file: UploadFile = File(...)):
 
         frame_number = 0
         analyzed_frames = 0
+        total_detections = 0
         detections = []
         class_counts = {}
 
@@ -130,7 +144,7 @@ async def analyze_video(file: UploadFile = File(...)):
                         confidence = float(box.conf.item())
                         coords = [round(float(v), 1) for v in box.xyxy[0].tolist()]
                         class_counts[label] = class_counts.get(label, 0) + 1
-                        # Cap returned detail to keep API responses manageable.
+                        total_detections += 1
                         if len(detections) < 5000:
                             detections.append({
                                 "frame": frame_number,
@@ -151,6 +165,7 @@ async def analyze_video(file: UploadFile = File(...)):
             "job_id": job_id,
             "frames_processed": frame_number,
             "frames_analyzed": analyzed_frames,
+            "total_detections": total_detections,
             "fps": round(fps, 3),
             "width": width,
             "height": height,
