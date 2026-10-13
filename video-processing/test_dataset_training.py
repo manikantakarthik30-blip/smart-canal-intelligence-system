@@ -23,12 +23,9 @@ def test_valid_yolo_dataset_zip_is_normalized(tmp_path: Path) -> None:
         "dataset/images/train/.keep": "",
         "dataset/images/val/.keep": "",
     })
-    target = tmp_path / "extracted"
+    target = tmp_path / "validated"
     target.mkdir()
-    with zipfile.ZipFile(archive) as zf:
-        zf.extractall(target)
-
-    result = _safe_extract_and_validate(archive, target / "validated")
+    result = _safe_extract_and_validate(archive, target)
     assert result["image_count"] == 2
     assert result["classes"] == ["plastic_bottle", "floating_debris"]
     assert Path(result["yaml_path"]).is_file()
