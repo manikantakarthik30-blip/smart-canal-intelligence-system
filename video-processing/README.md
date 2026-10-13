@@ -4,49 +4,111 @@ This service adds frame-sampled computer-vision inference to the Smart Canal Int
 
 ## Prerequisites
 
-- Python 3.10 or newer (use a version supported by the installed Ultralytics release).
-- A compatible YOLO model trained and validated for floating canal waste.
-- A model licence compatible with your use. Keep private weights out of Git.
+- Python 3.10+
+- A compatible YOLO model trained and validated for floating canal waste
+- A model licence compatible with your use (keep private weights out of Git)
 
-Place the weights at `models/floating_waste.pt`, or set `SCIS_MODEL_PATH` to another local path. A generic object-detection model is not guaranteed to recognize canal waste classes.
+Place weights at `models/floating_waste.pt` or set `SCIS_MODEL_PATH`.
 
-## Install on Windows PowerShell
+> Missing model weights are non-fatal: the API still boots, `GET /health` reports `model_ready: false`, and `POST /analyze` returns HTTP 503.
 
-From the repository root:
+## Install and run locally
 
-```powershell
+From repository root:
+
+```bash
 cd video-processing
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+source .venv/bin/activate   # Windows PowerShell: .\.venv\Scripts\Activate.ps1
+pip install --upgrade pip
 pip install -r requirements.txt
-$env:SCIS_MODEL_PATH="C:\path\to\floating_waste.pt"
-uvicorn app:app --reload --host 127.0.0.1 --port 8000
+export SCIS_MODEL_PATH="/absolute/path/to/floating_waste.pt"
+uvicorn app:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-Open `http://127.0.0.1:8000/docs` to test the API. `GET /health` must report `model_ready: true` before `POST /analyze` will work.
+Open `http://127.0.0.1:8000/docs`.
 
-## Frontend
+## Environment variables and validation
 
-Run the existing frontend on port 8080. For local development, the panel defaults to `http://127.0.0.1:8000`. For a deployed frontend, set `VITE_VIDEO_API_URL` to the public API URL at build time and set `SCIS_CORS_ORIGINS` on the API to the exact frontend origin(s).
+All values are validated at import/startup. Invalid values fail startup with a clear configuration error.
+
+- `SCIS_MODEL_PATH` (default: `video-processing/models/floating_waste.pt`)
+  - Must be a non-empty path
+  - File may be missing (service still starts with model not ready)
+- `SCIS_FRAME_STRIDE` (default: `3`)
+  - Integer, must be `>= 1`
+- `SCIS_CONFIDENCE` (default: `0.25`)
+  - Number in range `[0.0, 1.0]`
+- `SCIS_MAX_UPLOAD_BYTES` (default: `104857600`)
+  - Integer, must be `>= 1`
+- `SCIS_CORS_ORIGINS` (default: `http://localhost:8080,http://127.0.0.1:8080,http://localhost:5173,http://127.0.0.1:5173`)
+  - Comma-separated non-empty HTTP/HTTPS origins
+- `SCIS_OUTPUT_RETENTION_SECONDS` (default: `3600`)
+  - Integer, must be `>= 1`
+- `SCIS_OUTPUT_CLEANUP_INTERVAL_SECONDS` (default: `300`)
+  - Integer, must be `>= 1`
+- `SCIS_OUTPUT_CLEANUP_ENABLED` (default: `true`)
+  - Boolean: `true/false`, `1/0`, `yes/no`, `on/off`
+- `SCIS_UPLOAD_DIR` (optional)
+  - Local upload temp directory override
+- `SCIS_OUTPUT_DIR` (optional)
+  - Local annotated output directory override
+
+## Output retention and cleanup behavior
+
+Annotated files are written to `outputs/` and served via `/video/{filename}`.
+
+- Cleanup is managed by a lifecycle registry with locking.
+- Active files are tracked while:
+  - a file is being generated (`/analyze` processing), or
+  - a file is being served (`/video/{filename}` response)
+- Cleanup never deletes active files.
+- Cleanup removes only `*_annotated.mp4` files older than `SCIS_OUTPUT_RETENTION_SECONDS`.
+- Cleanup runs opportunistically on analyze requests, at most once per `SCIS_OUTPUT_CLEANUP_INTERVAL_SECONDS`.
+
+## API and error-handling notes
+
+The API contract is preserved:
+
+- `GET /health`
+- `POST /analyze`
+- `GET /video/{filename}`
+
+Behavior updates:
+
+- `POST /analyze` now adds `request_id` in successful JSON responses for observability.
+- Internal exceptions are logged server-side with request/job IDs and stack traces.
+- Clients receive sanitized HTTP 500 messages with reference IDs (no raw stack traces or internal paths).
+
+## Frontend integration
+
+Run the existing frontend on port 8080. Local panel defaults to `http://127.0.0.1:8000`. For deployed frontend use `VITE_VIDEO_API_URL` and configure `SCIS_CORS_ORIGINS` to exact frontend origins.
+
+## Tests
+
+Install test dependencies and run pytest:
+
+```bash
+cd video-processing
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-test.txt
+pytest -q
+```
+
+Current automated tests cover:
+
+- health checks when model weights are missing
+- missing model behavior (`/analyze` returns 503)
+- invalid file type rejection
+- empty video rejection
+- oversize upload rejection
+- output retention cleanup
+- protection against deleting active output files
+- inference exception sanitization (safe 500)
+- configuration validation
+- worker-thread dispatch for inference (`asyncio.to_thread` path)
 
 ## Zoho Catalyst
 
-See [ZOHO_CATALYST_DEPLOYMENT.md](./ZOHO_CATALYST_DEPLOYMENT.md) for the AppSail container layout, no-card billing guardrails, model requirements, deployment steps, and current gaps. The added Dockerfile targets Catalyst AppSail custom runtime; it does not bundle model weights.
-
-## Settings
-
-- `SCIS_MODEL_PATH`: path to the compatible model weights.
-- `SCIS_FRAME_STRIDE`: analyze every Nth frame (default 3; larger values reduce CPU usage).
-- `SCIS_CONFIDENCE`: detector confidence threshold (default 0.25).
-- `SCIS_CORS_ORIGINS`: comma-separated allowed frontend origins.
-- `PORT`: HTTP port supplied by the hosting platform (container default 8080).
-
-## Current MVP limitations
-
-- The endpoint processes synchronously; large or slow videos can exceed hosting request timeouts.
-- Uploads are removed after processing, but annotated outputs remain on local disk temporarily. Ephemeral hosting filesystems are not durable.
-- No Catalyst Data Store/File Store integration is implemented yet.
-- Detections are counts across sampled frames, not unique physical objects. Add object tracking for unique-item estimates.
-- Sampled frames have bounding boxes; unsampled frames are copied without boxes.
-- Authentication, job queueing, persistent result storage and rate limiting are not yet implemented.
-- No trained model, real canal test video, cloud deployment, or end-to-end test has been verified. Validate on labelled canal footage before using results for official alerts or reports.
+See [ZOHO_CATALYST_DEPLOYMENT.md](./ZOHO_CATALYST_DEPLOYMENT.md) for AppSail deployment notes and constraints. The Docker image does not bundle model weights.
