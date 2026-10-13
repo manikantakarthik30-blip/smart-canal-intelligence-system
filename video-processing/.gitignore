@@ -1,0 +1,12 @@
+__pycache__/
+.venv/
+uploads/*
+outputs/*
+models/*
+!uploads/.gitkeep
+!outputs/.gitkeep
+!models/.gitkeep
+datasets/*
+training-runs/*
+!datasets/.gitkeep
+!training-runs/.gitkeep
