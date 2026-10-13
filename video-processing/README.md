@@ -112,3 +112,38 @@ Current automated tests cover:
 ## Zoho Catalyst
 
 See [ZOHO_CATALYST_DEPLOYMENT.md](./ZOHO_CATALYST_DEPLOYMENT.md) for AppSail deployment notes and constraints. The Docker image does not bundle model weights.
+
+## Separate dataset upload and training workflow
+
+The dashboard has a separate **Dataset Upload & Model Training** panel. It does not use the video-analysis upload control and uploading a dataset never starts training automatically.
+
+### Accepted dataset ZIP
+
+- ZIP maximum: 500 MB; extracted contents maximum: 2 GB; maximum 20,000 files.
+- Include exactly one `data.yaml` or `data.yml`, labeled images, and YOLO detection label text files.
+- YAML must define `names`, `train`, and `val` paths. The train/validation paths must exist inside the extracted dataset directory.
+- Supported image formats: JPG, JPEG, PNG, BMP, WEBP.
+- Use a standard YOLO object-detection layout. Example:
+
+```text
+my-dataset.zip
+  data.yaml
+  images/
+    train/*.jpg
+    val/*.jpg
+  labels/
+    train/*.txt
+    val/*.txt
+```
+
+Your `data.yaml` should use paths relative to its directory, for example `train: images/train`, `val: images/val`, and `names: [plastic_bottle, plastic_bag, floating_debris]`. Class names must match the actual annotations; do not add classes that are not labeled.
+
+### Workflow and endpoints
+
+1. Start the API and open `http://127.0.0.1:8000/docs`.
+2. Use `POST /datasets/upload` to upload and validate the ZIP. The response returns a dataset ID, image count, and class names.
+3. Explicitly call `POST /datasets/{dataset_id}/train?epochs=30&imgsz=640` to start training.
+4. Training writes `best.pt` under `video-processing/training-runs/<dataset_id>/scis/weights/best.pt` (exact run path is returned by the API).
+5. Evaluate the trained weights on held-out canal footage before configuring `SCIS_MODEL_PATH`. Training does not automatically replace the inference model.
+
+Set `SCIS_TRAIN_BASE_MODEL` to a local pretrained YOLO checkpoint if you do not want Ultralytics to download a base checkpoint. Training can consume substantial CPU, memory, disk and time; it is not a background job queue and should not be exposed to an untrusted public user. Use local development or a protected environment only. Uploaded datasets and trained weights are local filesystem artifacts and may be lost on ephemeral hosting. Keep them out of Git.
