@@ -3,3 +3,4 @@ uvicorn[standard]==0.32.0
 python-multipart==0.0.30
 opencv-python-headless==4.10.0.84
 ultralytics==8.3.31
+PyYAML==6.0.2
