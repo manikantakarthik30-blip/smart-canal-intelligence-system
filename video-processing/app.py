@@ -444,3 +444,9 @@ def get_annotated_video(filename: str, request: Request):
             extra={"request_id": request_id, "output_file": str(path)},
         )
         raise HTTPException(status_code=500, detail=f"Failed to serve video. request_id={request_id}.")
+
+
+# Dataset upload and model-training workflow is separate from video inference.
+from dataset_training import router as dataset_training_router  # noqa: E402
+
+app.include_router(dataset_training_router)
