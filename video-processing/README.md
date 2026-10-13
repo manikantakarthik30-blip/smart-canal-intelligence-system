@@ -1,14 +1,14 @@
 # SCIS Video Processing Service
 
-This service adds real frame-by-frame computer-vision inference to the Smart Canal Intelligence System frontend.
+This service adds frame-sampled computer-vision inference to the Smart Canal Intelligence System frontend.
 
 ## Prerequisites
 
 - Python 3.10 or newer (use a version supported by the installed Ultralytics release).
-- A compatible YOLO model trained for floating waste. The repository intentionally does not include model weights.
-- The model's licence must be compatible with your use.
+- A compatible YOLO model trained and validated for floating canal waste.
+- A model licence compatible with your use. Keep private weights out of Git.
 
-Place the weights at `models/floating_waste.pt`, or set `SCIS_MODEL_PATH` to another local path. Do not rename a generic object-detection model and assume it can detect canal waste classes.
+Place the weights at `models/floating_waste.pt`, or set `SCIS_MODEL_PATH` to another local path. A generic object-detection model is not guaranteed to recognize canal waste classes.
 
 ## Install on Windows PowerShell
 
@@ -19,27 +19,34 @@ cd video-processing
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+$env:SCIS_MODEL_PATH="C:\path\to\floating_waste.pt"
 uvicorn app:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Open `http://127.0.0.1:8000/docs` to test the API. `GET /health` reports whether model weights are present.
+Open `http://127.0.0.1:8000/docs` to test the API. `GET /health` must report `model_ready: true` before `POST /analyze` will work.
 
 ## Frontend
 
-Run the existing frontend on port 8080. By default, the upload panel calls `http://127.0.0.1:8000`. Set `VITE_VIDEO_API_URL` to the deployed service URL for a deployed frontend, and set `SCIS_CORS_ORIGINS` on the API to a comma-separated list of exact allowed frontend origins.
+Run the existing frontend on port 8080. For local development, the panel defaults to `http://127.0.0.1:8000`. For a deployed frontend, set `VITE_VIDEO_API_URL` to the public API URL at build time and set `SCIS_CORS_ORIGINS` on the API to the exact frontend origin(s).
+
+## Zoho Catalyst
+
+See [ZOHO_CATALYST_DEPLOYMENT.md](./ZOHO_CATALYST_DEPLOYMENT.md) for the AppSail container layout, no-card billing guardrails, model requirements, deployment steps, and current gaps. The added Dockerfile targets Catalyst AppSail custom runtime; it does not bundle model weights.
 
 ## Settings
 
 - `SCIS_MODEL_PATH`: path to the compatible model weights.
-- `SCIS_FRAME_STRIDE`: analyze every Nth frame (default 3).
+- `SCIS_FRAME_STRIDE`: analyze every Nth frame (default 3; larger values reduce CPU usage).
 - `SCIS_CONFIDENCE`: detector confidence threshold (default 0.25).
-- `SCIS_CORS_ORIGINS`: allowed frontend origins.
+- `SCIS_CORS_ORIGINS`: comma-separated allowed frontend origins.
+- `PORT`: HTTP port supplied by the hosting platform (container default 8080).
 
 ## Current MVP limitations
 
 - The endpoint processes synchronously; large or slow videos can exceed hosting request timeouts.
-- Output files remain on local disk until manually removed. Ephemeral hosting filesystems are not durable.
+- Uploads are removed after processing, but annotated outputs remain on local disk temporarily. Ephemeral hosting filesystems are not durable.
+- No Catalyst Data Store/File Store integration is implemented yet.
 - Detections are counts across sampled frames, not unique physical objects. Add object tracking for unique-item estimates.
-- The sampled frames have bounding boxes; unsampled frames are copied without boxes.
+- Sampled frames have bounding boxes; unsampled frames are copied without boxes.
 - Authentication, job queueing, persistent result storage and rate limiting are not yet implemented.
-- Validate inference quality on labelled canal footage before using results for official alerts or reports.
+- No trained model, real canal test video, cloud deployment, or end-to-end test has been verified. Validate on labelled canal footage before using results for official alerts or reports.
