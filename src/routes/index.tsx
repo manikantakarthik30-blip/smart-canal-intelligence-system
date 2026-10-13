@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { mountCanalScene, type CanalSceneHandle } from "@/lib/canal-scene";
 import { LiveDashboard } from "@/components/live-dashboard";
 import { DetectionFeed } from "@/components/detection-feed";
+import { VideoAnalysis } from "@/components/video-analysis";
 import { HotspotMap } from "@/components/hotspot-map";
 import { AlertsBoard } from "@/components/alerts-board";
 import { ReportGenerator } from "@/components/report-generator";
@@ -86,6 +87,7 @@ function Home() {
 
         <LiveDashboard />
         <DetectionFeed />
+        <VideoAnalysis />
         <HotspotMap />
         <AlertsBoard />
         <ReportGenerator />
