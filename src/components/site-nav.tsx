@@ -40,7 +40,7 @@ export function SiteNav() {
     return () => io.disconnect();
   }, []);
 
-  const go = (href: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+  const go = (href: string) => (_event: MouseEvent<HTMLAnchorElement>) => {
     const target = document.querySelector(href);
     target?.classList.add("is-in");
     setOpen(false);

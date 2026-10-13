@@ -1,0 +1,8 @@
+{
+  "name": "Smart Canal Intelligence System",
+  "description": "AI-powered pollution detection and monitoring platform for Eluru and Ryves canals in Vijayawada.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

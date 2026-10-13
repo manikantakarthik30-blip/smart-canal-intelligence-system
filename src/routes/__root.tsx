@@ -3,7 +3,7 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "SCIS | Smart Canal Intelligence System | Vijayawada";
+const APP_NAME = "Smart Canal Intelligence System";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -14,7 +14,7 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "Smart Canal Intelligence System - AI-powered pollution detection for Eluru Canal and Ryves Canal, Vijayawada",
+          "AI-powered pollution detection and monitoring platform for Eluru and Ryves canals in Vijayawada.",
       },
       {
         name: "keywords",
@@ -23,7 +23,8 @@ export const Route = createRootRoute({
       { property: "og:title", content: "Smart Canal Intelligence System" },
       {
         property: "og:description",
-        content: "AI-Powered Canal Pollution Monitoring Platform",
+        content:
+          "AI-powered pollution detection and monitoring platform for Eluru and Ryves canals in Vijayawada.",
       },
       { property: "og:type", content: "website" },
       { name: "theme-color", content: "#0a0a0a" },

@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { detectWaste, trackHits, type WasteHit } from "@/lib/waste-detect";
 
-const OBJECTS = ["Plastic Waste", "Debris", "Garbage Bag"] as const;
+const _OBJECTS = ["Plastic Waste", "Debris", "Garbage Bag"] as const;
 
 const FLOW = "/flow/";
 const WM = "https://upload.wikimedia.org/wikipedia/commons/";
@@ -39,7 +39,7 @@ const CAMERAS = [
   { id: "CAM-03", location: "Eluru Canal, Bhavanipuram Bund", startCount: 36, offset: 6, delay: 800 },
 ] as const;
 
-type ObjectType = (typeof OBJECTS)[number];
+type ObjectType = (typeof _OBJECTS)[number];
 
 type Tracked = WasteHit & { id: number; misses: number };
 
