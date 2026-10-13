@@ -12,6 +12,7 @@ type AnalysisResult = {
   job_id: string;
   frames_processed: number;
   frames_analyzed: number;
+  total_detections: number;
   fps: number;
   width: number;
   height: number;
@@ -21,7 +22,8 @@ type AnalysisResult = {
   note: string;
 };
 
-const API_BASE = (import.meta.env.VITE_VIDEO_API_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+const configuredApi = import.meta.env.VITE_VIDEO_API_URL?.trim().replace(/\/$/, "");
+const API_BASE = configuredApi || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
 
 export function VideoAnalysis() {
   const [file, setFile] = useState<File | null>(null);
@@ -30,7 +32,7 @@ export function VideoAnalysis() {
   const [error, setError] = useState("");
 
   async function analyze() {
-    if (!file || busy) return;
+    if (!file || busy || !API_BASE) return;
     setBusy(true);
     setError("");
     setResult(null);
@@ -64,11 +66,17 @@ export function VideoAnalysis() {
         </header>
 
         <div className="metric-card" style={{ display: "grid", gap: 16 }}>
+          {!API_BASE && (
+            <p role="status" className="metric-meta">
+              Video analysis is not configured for this deployment yet. Set VITE_VIDEO_API_URL to the public URL of the deployed Python analysis service.
+            </p>
+          )}
           <label style={{ display: "grid", gap: 8 }}>
             <span className="metric-label">Select canal footage (MP4, MOV, AVI or MKV; maximum 100 MB)</span>
             <input
               type="file"
               accept=".mp4,.mov,.avi,.mkv,video/mp4,video/quicktime,video/x-msvideo,video/x-matroska"
+              disabled={!API_BASE || busy}
               onChange={(event) => {
                 setFile(event.target.files?.[0] ?? null);
                 setResult(null);
@@ -77,7 +85,7 @@ export function VideoAnalysis() {
             />
           </label>
           {file && <p className="metric-meta">{file.name} · {(file.size / (1024 * 1024)).toFixed(1)} MB</p>}
-          <button type="button" className="report-go" disabled={!file || busy} onClick={analyze}>
+          <button type="button" className="report-go" disabled={!API_BASE || !file || busy} onClick={analyze}>
             {busy ? "Processing video…" : "Analyze canal video"}
           </button>
           {busy && <p role="status" className="metric-meta">Processing can take time depending on video length and available hardware. Keep this tab open.</p>}
@@ -98,7 +106,7 @@ export function VideoAnalysis() {
               </article>
               <article className="metric-card">
                 <p className="metric-label">Detections in sampled frames</p>
-                <p className="metric-value metric-orange">{result.detections.length}</p>
+                <p className="metric-value metric-orange">{result.total_detections ?? Object.values(result.sampled_frame_detections).reduce((sum, count) => sum + count, 0)}</p>
               </article>
             </div>
 
