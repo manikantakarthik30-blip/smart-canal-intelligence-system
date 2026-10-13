@@ -24,6 +24,8 @@ type AnalysisResult = {
 
 const configuredApi = import.meta.env.VITE_VIDEO_API_URL?.trim().replace(/\/$/, "");
 const API_BASE = configuredApi || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+const ALLOWED_EXTENSIONS = new Set([".mp4", ".mov", ".avi", ".mkv"]);
 
 export function VideoAnalysis() {
   const [file, setFile] = useState<File | null>(null);
@@ -53,6 +55,29 @@ export function VideoAnalysis() {
     }
   }
 
+  function selectFile(selected: File | undefined) {
+    setResult(null);
+    setError("");
+    if (!selected) {
+      setFile(null);
+      return;
+    }
+    const extension = selected.name.includes(".")
+      ? `.${selected.name.split(".").pop()?.toLowerCase()}`
+      : "";
+    if (!ALLOWED_EXTENSIONS.has(extension)) {
+      setFile(null);
+      setError("Unsupported video format. Choose MP4, MOV, AVI or MKV.");
+      return;
+    }
+    if (selected.size > MAX_UPLOAD_BYTES) {
+      setFile(null);
+      setError("Video exceeds the 100 MB upload limit.");
+      return;
+    }
+    setFile(selected);
+  }
+
   return (
     <section id="video-analysis" className="feed reveal" aria-labelledby="video-analysis-title">
       <div className="feed-inner">
@@ -65,32 +90,32 @@ export function VideoAnalysis() {
           </p>
         </header>
 
-        <div className="metric-card" style={{ display: "grid", gap: 16 }}>
-          {!API_BASE && (
+        {!API_BASE ? (
+          <div className="metric-card">
             <p role="status" className="metric-meta">
-              Video analysis is not configured for this deployment yet. Set VITE_VIDEO_API_URL to the public URL of the deployed Python analysis service.
+              Video analysis is not enabled for this deployment yet. The upload controls are hidden until
+              VITE_VIDEO_API_URL is configured with the public URL of the deployed Python analysis service.
             </p>
-          )}
-          <label style={{ display: "grid", gap: 8 }}>
-            <span className="metric-label">Select canal footage (MP4, MOV, AVI or MKV; maximum 100 MB)</span>
-            <input
-              type="file"
-              accept=".mp4,.mov,.avi,.mkv,video/mp4,video/quicktime,video/x-msvideo,video/x-matroska"
-              disabled={!API_BASE || busy}
-              onChange={(event) => {
-                setFile(event.target.files?.[0] ?? null);
-                setResult(null);
-                setError("");
-              }}
-            />
-          </label>
-          {file && <p className="metric-meta">{file.name} · {(file.size / (1024 * 1024)).toFixed(1)} MB</p>}
-          <button type="button" className="report-go" disabled={!API_BASE || !file || busy} onClick={analyze}>
-            {busy ? "Processing video…" : "Analyze canal video"}
-          </button>
-          {busy && <p role="status" className="metric-meta">Processing can take time depending on video length and available hardware. Keep this tab open.</p>}
-          {error && <p role="alert" style={{ color: "#ff6b6b" }}>{error}</p>}
-        </div>
+          </div>
+        ) : (
+          <div className="metric-card" style={{ display: "grid", gap: 16 }}>
+            <label style={{ display: "grid", gap: 8 }}>
+              <span className="metric-label">Select canal footage (MP4, MOV, AVI or MKV; maximum 100 MB)</span>
+              <input
+                type="file"
+                accept=".mp4,.mov,.avi,.mkv,video/mp4,video/quicktime,video/x-msvideo,video/x-matroska"
+                disabled={busy}
+                onChange={(event) => selectFile(event.target.files?.[0])}
+              />
+            </label>
+            {file && <p className="metric-meta">{file.name} · {(file.size / (1024 * 1024)).toFixed(1)} MB</p>}
+            <button type="button" className="report-go" disabled={!file || busy} onClick={analyze}>
+              {busy ? "Processing video…" : "Analyze canal video"}
+            </button>
+            {busy && <p role="status" className="metric-meta">Processing can take time depending on video length and available hardware. Keep this tab open.</p>}
+            {error && <p role="alert" style={{ color: "#ff6b6b" }}>{error}</p>}
+          </div>
+        )}
 
         {result && (
           <div className="metric-card" style={{ display: "grid", gap: 16, marginTop: 20 }}>
